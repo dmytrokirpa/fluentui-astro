@@ -1,5 +1,16 @@
 ---
+import { createCSSRuleFromTheme, webLightTheme, tokens, Text, Title1 } from '@fluentui/react-components';
+import Example from '../components/Example'
 
+const themeTokens = createCSSRuleFromTheme(':root', webLightTheme);
+
+const globalStyles = { 
+	margin: 0, 
+	padding: 0,
+	backgroundColor: tokens.colorNeutralBackground1, 
+	fontFamily: tokens.fontFamilyBase,
+	color: tokens.colorNeutralForeground1,
+};
 ---
 
 <html lang="en">
@@ -9,8 +20,17 @@
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Astro</title>
+		
+		<!-- Set the styles for the theme -->
+		<style set:html={themeTokens} />
 	</head>
-	<body>
-		<h1>Astro</h1>
+	<body style={globalStyles}>
+		<!-- Title1 doesn't require context, it needs only theme tokens to be set -->
+		<Title1>Non-interactive island (no client hydration, but styles are SSR-ed)</Title1>
+		<Example />
+		<br />
+		<br />
+		<Title1>Interactive island (SSR-ed + client hydration)</Title1>
+		<Example client:load />
 	</body>
 </html>

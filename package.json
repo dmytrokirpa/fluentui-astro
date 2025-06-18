@@ -9,6 +9,16 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.9.4"
+    "@astrojs/react": "^4.3.0",
+    "@fluentui-contrib/react-headless-provider": "^1.0.3",
+    "@fluentui/react-components": "^9.66.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "astro": "^5.9.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "vite-plugin-cjs-interop": "^2.2.0"
   }
 }

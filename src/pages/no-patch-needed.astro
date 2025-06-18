@@ -1,0 +1,53 @@
+---
+import {
+  createCSSRuleFromTheme,
+  webLightTheme,
+  tokens,
+  Text,
+  Title1,
+} from "@fluentui/react-components";
+import Example from "../components/Example";
+import {
+  FluentSSRProvider,
+  extractSSRStyles,
+} from "../components/FluentSSRProvider";
+
+const themeTokens = createCSSRuleFromTheme(":root", webLightTheme);
+
+const globalStyles = {
+  margin: 0,
+  padding: 0,
+  backgroundColor: tokens.colorNeutralBackground1,
+  fontFamily: tokens.fontFamilyBase,
+  color: tokens.colorNeutralForeground1,
+};
+
+// Extract styles from the Example component for server-side rendering
+const styles = extractSSRStyles(Example);
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro</title>
+
+    <!-- Set the styles for the theme -->
+    <style set:html={themeTokens}></style>
+  </head>
+  <body style={globalStyles}>
+    <Title1>
+      No patch is required because the component is <b>rendered for 2nd time</b>
+      just to collect and flush styles during SSR.
+    </Title1>
+
+    <!-- Manually inject extracted styles -->
+    <Fragment set:html={styles} />
+
+    <FluentSSRProvider>
+      <Example />
+    </FluentSSRProvider>
+  </body>
+</html>

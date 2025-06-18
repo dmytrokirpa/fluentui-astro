@@ -1,0 +1,99 @@
+diff --git a/node_modules/@astrojs/react/dist/client.js b/node_modules/@astrojs/react/dist/client.js
+index e66de81..4118b57 100644
+--- a/node_modules/@astrojs/react/dist/client.js
++++ b/node_modules/@astrojs/react/dist/client.js
+@@ -1,6 +1,8 @@
+ import { createElement, startTransition } from "react";
+ import { createRoot, hydrateRoot } from "react-dom/client";
+ import StaticHtml from "./static-html.js";
++import { FluentRendererProvider } from "./fluent-renderer-provider.js";
++
+ function isAlreadyHydrated(element) {
+   for (const key in element) {
+     if (key.startsWith("__reactContainer")) {
+@@ -67,11 +69,15 @@ var client_default = (element) => (Component, props, { default: children, ...slo
+   for (const [key, value] of Object.entries(slotted)) {
+     props[key] = createElement(StaticHtml, { value, name: key });
+   }
+-  const componentEl = createElement(
+-    Component,
+-    props,
+-    getChildren(children, element.hasAttribute("data-react-children"))
+-  );
++  // wrap in FluentRendererProvider to avoid hydration issues
++  const componentEl = createElement(FluentRendererProvider, {
++    children: createElement(
++      Component,
++      props,
++      getChildren(children, element.hasAttribute("data-react-children"))
++    )
++  });
++
+   const rootKey = isAlreadyHydrated(element);
+   if (rootKey) {
+     delete element[rootKey];
+diff --git a/node_modules/@astrojs/react/dist/fluent-renderer-provider.js b/node_modules/@astrojs/react/dist/fluent-renderer-provider.js
+new file mode 100644
+index 0000000..c56cbd3
+--- /dev/null
++++ b/node_modules/@astrojs/react/dist/fluent-renderer-provider.js
+@@ -0,0 +1,16 @@
++import * as React from "react";
++import {
++  SSRProvider,
++  RendererProvider,
++  createDOMRenderer,
++} from "@fluentui/react-components";
++
++export function FluentRendererProvider({
++  children,
++  renderer = createDOMRenderer(),
++}) {
++  return React.createElement(RendererProvider, {
++    renderer,
++    children: React.createElement(SSRProvider, null, children),
++  });
++}
+diff --git a/node_modules/@astrojs/react/dist/server.js b/node_modules/@astrojs/react/dist/server.js
+index 5d8d8a4..637e849 100644
+--- a/node_modules/@astrojs/react/dist/server.js
++++ b/node_modules/@astrojs/react/dist/server.js
+@@ -3,6 +3,9 @@ import React from "react";
+ import ReactDOM from "react-dom/server";
+ import { incrementId } from "./context.js";
+ import StaticHtml from "./static-html.js";
++import { FluentRendererProvider } from "./fluent-renderer-provider.js";
++import { createDOMRenderer, renderToStyleElements } from "@fluentui/react-components";
++
+ const slotName = (str) => str.trim().replace(/[-_]([a-z])/g, (_, w) => w.toUpperCase());
+ const reactTypeof = Symbol.for("react.element");
+ const reactTransitionalTypeof = Symbol.for("react.transitional.element");
+@@ -79,7 +82,13 @@ async function renderToStaticMarkup(Component, props, { default: children, ...sl
+     attrs["data-action-key"] = formState[1];
+     attrs["data-action-name"] = formState[2];
+   }
+-  const vnode = React.createElement(Component, newProps);
++  // 1. create renderer
++  const renderer = createDOMRenderer();
++  // 2. wrap in FluentRendererProvider to collect styles
++  const vnode = React.createElement(FluentRendererProvider, {
++    renderer,
++    children: React.createElement(Component, newProps)
++  });
+   const renderOptions = {
+     identifierPrefix: prefix,
+     formState
+@@ -92,7 +101,12 @@ async function renderToStaticMarkup(Component, props, { default: children, ...sl
+   } else {
+     html = await renderToPipeableStreamAsync(vnode, renderOptions);
+   }
+-  return { html, attrs };
++
++  // 3. Extract styles
++  const style = ReactDOM.renderToStaticMarkup(renderToStyleElements(renderer));
++  
++  // 4. return html with styles
++  return { html: style + html, attrs };
+ }
+ async function getFormState({
+   result
